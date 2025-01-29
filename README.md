@@ -25,6 +25,14 @@ It provides essential banking functionalities such as **account creation, fund t
 - **Service Layer** - Contains business logic  
 - **Controller Layer** - Exposes REST endpoints  
 
----
+## API Endpoints
+---POST	/accounts	Create a new account
+GET	/accounts	Retrieve all accounts
+GET	/accounts/{id}	Retrieve an account by ID
+DELETE	/accounts/{id}	Delete an account
+PUT	/accounts/deposit	Deposit money
+PUT	/accounts/withdraw	Withdraw money
+PUT	/accounts/transfer	Transfer funds
+
 
 ## 📂 Project Structure  
