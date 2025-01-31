@@ -2,6 +2,7 @@ package com.example.banking.controller;
 
 import com.example.banking.dto.AccountDTO;
 import com.example.banking.dto.FundTransferDTO;
+import com.example.banking.dto.TransactionDTO;
 import com.example.banking.entity.AccountEntity;
 import com.example.banking.services.AccountServices;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,9 +65,14 @@ public class AccountController {
         return new ResponseEntity<>(accountDTO1, HttpStatus.OK);
     }
     @PutMapping("/fundtransfer")
-    public ResponseEntity<List<AccountDTO>> fundTransfer(FundTransferDTO fundTransferDTO){
-        List<AccountDTO> accountDTO  = accountServices.fundTransfer(fundTransferDTO);
-        return new ResponseEntity<>(accountDTO, HttpStatus.OK);
+    public String fundTransfer(FundTransferDTO fundTransferDTO){
+         accountServices.fundTransfer(fundTransferDTO);
+        return "fund transfer successfully";
+    }
+    @GetMapping("tranhistory/{id}")
+    public List<TransactionDTO> gettranhistory(Long id){
+        List<TransactionDTO> transactionDTO = accountServices.transHistory(id);
+        return transactionDTO;
     }
 
 }

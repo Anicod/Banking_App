@@ -2,22 +2,29 @@ package com.example.banking.services.impl;
 
 import com.example.banking.dto.AccountDTO;
 import com.example.banking.dto.FundTransferDTO;
+import com.example.banking.dto.TransactionDTO;
 import com.example.banking.entity.AccountEntity;
+import com.example.banking.entity.Transactions;
 import com.example.banking.exception.AccountNotFoundException;
 import com.example.banking.mapper.AccountMapper;
 import com.example.banking.repository.AccountRepository;
+import com.example.banking.repository.TransactionRepository;
 import com.example.banking.services.AccountServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AccountServiceImpl implements AccountServices {
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
     @Override
     public AccountDTO createAccount(AccountDTO accountDTO){
         AccountEntity accountEntity = AccountMapper.getAccountMapper(accountDTO);
@@ -57,6 +64,12 @@ public class AccountServiceImpl implements AccountServices {
     public AccountDTO depositmoney(AccountDTO accountDTO, Long id){
         AccountEntity accountEntity = accountRepository.findById(id).orElseThrow(()->new AccountNotFoundException("id not found"));
         accountEntity.setBalance(accountDTO.balance()+accountEntity.getBalance());
+        Transactions transactions = new Transactions();
+        transactions.setAcccountId(id);
+        transactions.setAmount(accountDTO.balance());
+        transactions.setTransactionType("Deposit");
+        transactions.setLocalDate(LocalDate.now());
+        transactionRepository.save(transactions);
         AccountDTO accountDTO1 = AccountMapper.getAccountDTO(accountRepository.save(accountEntity));
         return  accountDTO1;
 
@@ -66,27 +79,41 @@ public class AccountServiceImpl implements AccountServices {
         Double amount = accountEntity.getBalance()-accountDTO.balance();
         accountEntity.setBalance(amount);
         AccountDTO accountDTO1 = AccountMapper.getAccountDTO(accountRepository.save(accountEntity));
+        Transactions transactions = new Transactions();
+        transactions.setAcccountId(id);
+        transactions.setAmount(accountDTO.balance());
+        transactions.setTransactionType("Withdrw");
+        transactions.setLocalDate(LocalDate.now());
+        transactionRepository.save(transactions);
         return accountDTO1;
 
     }
 
     @Override
-    public List<AccountDTO> fundTransfer(FundTransferDTO fundTransferDTO) {
-        AccountServiceImpl accountService = new AccountServiceImpl();
-        accountService.transfer(fundTransferDTO);
-        AccountEntity accountEntity = accountRepository.findById(fundTransferDTO.fromAcc()).orElseThrow(()->new AccountNotFoundException("account not exsit"));
-        AccountEntity accountEntity1 = accountRepository.findById(fundTransferDTO.toAcc()).orElseThrow(()->new AccountNotFoundException("account not exsist"));
-        List<AccountDTO> al = new ArrayList<>();
-        al.add(AccountMapper.getAccountDTO(accountEntity));
-        al.add(AccountMapper.getAccountDTO(accountEntity1));
-        return al;
+    public void fundTransfer(FundTransferDTO fundTransferDTO){
+        AccountEntity fromaccountEntity = accountRepository.findById(fundTransferDTO.fromAcc()).orElseThrow(()->new AccountNotFoundException("Account not exsist"));
+        AccountEntity toaccountEntity = accountRepository.findById(fundTransferDTO.toAcc()).orElseThrow(()->new AccountNotFoundException("Account not exsit"));
+        fromaccountEntity.setBalance(fromaccountEntity.getBalance()-fundTransferDTO.amount());
+        toaccountEntity.setBalance(toaccountEntity.getBalance()+fundTransferDTO.amount());
+        accountRepository.save(fromaccountEntity);
+        accountRepository.save(toaccountEntity);
+        Transactions transactions = new Transactions();
+        transactions.setAcccountId(fundTransferDTO.fromAcc());
+        transactions.setAmount(fundTransferDTO.amount());
+        transactions.setTransactionType("TRANSFER");
+        transactions.setLocalDate(LocalDate.now());
+        transactionRepository.save(transactions);
     }
-    public void transfer(FundTransferDTO fundTransferDTO){
-        AccountEntity accountEntity = accountRepository.findById(fundTransferDTO.fromAcc()).orElseThrow(()->new AccountNotFoundException("Account not exsist"));
-        AccountEntity accountEntity1 = accountRepository.findById(fundTransferDTO.toAcc()).orElseThrow(()->new AccountNotFoundException("Account not exsit"));
-        accountEntity.setBalance(accountEntity.getBalance()-fundTransferDTO.amount());
-        accountEntity1.setBalance(accountEntity1.getBalance()+fundTransferDTO.amount());
-        accountRepository.save(accountEntity);
-        accountRepository.save(accountEntity1);
+
+    @Override
+    public List<TransactionDTO> transHistory(Long id) {
+        List<Transactions> lst = transactionRepository.findByAcccountIdOrderByLocalDateDesc(id);
+        List<TransactionDTO> transactionDTO = lst.stream().map((tras)->convert(tras)).collect(Collectors.toList());
+        return transactionDTO;
+
+    }
+    public TransactionDTO convert(Transactions transactions){
+        TransactionDTO transactionDTO = new TransactionDTO(transactions.getId(), transactions.getAcccountId(), transactions.getTransactionType(), transactions.getLocalDate());
+        return transactionDTO;
     }
 }
